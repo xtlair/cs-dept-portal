@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Details | CS Department</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="brand">
+    Sankara College of Science and Commerce
+    <small>Department of Computer Science</small>
+  </div>
+  <nav>
+    <a href="/index.html">Events</a>
+    <a href="/student-login.html" id="navLogin">Student Login</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div id="alertBox" class="alert hidden"></div>
+
+  <div class="card" id="eventCard">
+    <p class="muted">Loading event...</p>
+  </div>
+
+  <div class="card hidden" id="registerCard">
+    <h2>Register Your Team</h2>
+    <p class="muted" id="teamSizeHint"></p>
+
+    <form id="registerForm">
+      <label for="team_name">Team Name (optional, leave blank if registering alone)</label>
+      <input type="text" id="team_name" placeholder="e.g. Byte Busters">
+
+      <h3 style="margin-top:24px;">Team Members</h3>
+      <p class="muted" style="font-size:0.85rem;">You (the logged-in student) are automatically added as the team leader. Add your teammates below.</p>
+      <div id="membersWrap"></div>
+      <button type="button" id="addMemberBtn" class="btn secondary small">+ Add Teammate</button>
+
+      <div class="btn-row">
+        <button type="submit" class="btn">Submit Registration</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card hidden" id="loginPromptCard">
+    <p>You need to <a href="/student-login.html">log in</a> as a student to register for this event.</p>
+  </div>
+
+  <div class="card hidden" id="alreadyClosedCard">
+    <p class="muted">Registration for this event is closed.</p>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const eventId = params.get('id');
+let currentEvent = null;
+let isLoggedIn = false;
+
+async function checkLogin() {
+  try {
+    await apiCall('/api/student/me');
+    isLoggedIn = true;
+  } catch (e) {
+    isLoggedIn = false;
+  }
+}
+
+async function loadEvent() {
+  if (!eventId) {
+    document.getElementById('eventCard').innerHTML = '<p class="alert error">No event specified.</p>';
+    return;
+  }
+  try {
+    const data = await apiCall(`/api/events/${eventId}`);
+    currentEvent = data.event;
+    renderEvent();
+  } catch (err) {
+    document.getElementById('eventCard').innerHTML = `<p class="alert error">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderEvent() {
+  const ev = currentEvent;
+  document.getElementById('eventCard').innerHTML = `
+    <h2>${escapeHtml(ev.title)}</h2>
+    <div class="event-meta">
+      <span>📅 ${formatDate(ev.event_date)}</span>
+      ${ev.event_time ? `<span>🕒 ${escapeHtml(ev.event_time)}</span>` : ''}
+      <span>📍 ${escapeHtml(ev.venue || 'Venue TBA')}</span>
+    </div>
+    <p>${escapeHtml(ev.description || '')}</p>
+    <p class="muted" style="font-size:0.85rem;">
+      Team size: ${ev.min_team_size === ev.max_team_size ? ev.min_team_size : (ev.min_team_size + '-' + ev.max_team_size)} member(s)
+      ${ev.registration_deadline ? ' &middot; Registration closes ' + formatDate(ev.registration_deadline) : ''}
+    </p>
+  `;
+
+  const deadlinePassed = ev.registration_deadline && new Date() > new Date(ev.registration_deadline);
+
+  if (deadlinePassed) {
+    document.getElementById('alreadyClosedCard').classList.remove('hidden');
+    return;
+  }
+
+  if (isLoggedIn) {
+    document.getElementById('registerCard').classList.remove('hidden');
+    document.getElementById('teamSizeHint').textContent =
+      `This event requires ${ev.min_team_size === ev.max_team_size ? 'exactly ' + ev.min_team_size : 'between ' + ev.min_team_size + ' and ' + ev.max_team_size} member(s) total (including you).`;
+    setupMemberFields();
+  } else {
+    document.getElementById('loginPromptCard').classList.remove('hidden');
+  }
+}
+
+function setupMemberFields() {
+  const wrap = document.getElementById('membersWrap');
+  const addBtn = document.getElementById('addMemberBtn');
+  const maxExtra = (currentEvent.max_team_size || 1) - 1; // minus the leader
+
+  function addRow() {
+    const currentRows = wrap.querySelectorAll('.team-member-row').length;
+    if (currentRows >= maxExtra) return;
+
+    const row = document.createElement('div');
+    row.className = 'team-member-row';
+    row.innerHTML = `
+      <div><label>Name</label><input type="text" class="m-name" required></div>
+      <div><label>Department</label><input type="text" class="m-dept"></div>
+      <div><label>Year</label><input type="text" class="m-year"></div>
+      <div><label>Email</label><input type="email" class="m-email"></div>
+      <div><button type="button" class="btn danger small remove-row">Remove</button></div>
+    `;
+    row.querySelector('.remove-row').addEventListener('click', () => row.remove());
+    wrap.appendChild(row);
+  }
+
+  if (maxExtra <= 0) {
+    addBtn.classList.add('hidden');
+  } else {
+    addBtn.addEventListener('click', addRow);
+  }
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlert('alertBox');
+
+  const teammates = Array.from(document.querySelectorAll('.team-member-row')).map(row => ({
+    name: row.querySelector('.m-name').value,
+    department: row.querySelector('.m-dept').value,
+    year: row.querySelector('.m-year').value,
+    email: row.querySelector('.m-email').value,
+  }));
+
+  try {
+    await apiCall(`/api/events/${eventId}/register`, 'POST', {
+      team_name: document.getElementById('team_name').value,
+      teammates,
+    });
+    showAlert('alertBox', 'Registered successfully! See you at the event.', 'success');
+    document.getElementById('registerCard').classList.add('hidden');
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+});
+
+async function init() {
+  await checkLogin();
+  if (isLoggedIn) document.getElementById('navLogin').remove();
+  await loadEvent();
+}
+init();
+</script>
+</body>
+</html>

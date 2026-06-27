@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard | CS Department</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="brand">
+    Sankara College of Science and Commerce
+    <small>Department of Computer Science &mdash; Admin Panel</small>
+  </div>
+  <nav>
+    <a href="/index.html">View Public Site</a>
+    <span id="adminNameDisplay"></span>
+    <a href="#" id="logoutLink">Log Out</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div id="alertBox" class="alert hidden"></div>
+
+  <div class="stat-grid" id="statGrid">
+    <div class="stat-tile"><div class="num">-</div><div class="label">Events</div></div>
+    <div class="stat-tile"><div class="num">-</div><div class="label">Teams Registered</div></div>
+    <div class="stat-tile"><div class="num">-</div><div class="label">Total Participants</div></div>
+    <div class="stat-tile"><div class="num">-</div><div class="label">Student Accounts</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="active" data-tab="events">Manage Events</button>
+    <button data-tab="registrations">All Registrations</button>
+    <button data-tab="breakdown">Department / Year Breakdown</button>
+    <button data-tab="settings">Add Admin</button>
+  </div>
+
+  <!-- EVENTS TAB -->
+  <div id="tab-events" class="tab-content">
+    <div class="card">
+      <div class="flex-between">
+        <h2 style="margin:0;">Events</h2>
+        <button class="btn small" id="newEventBtn">+ New Event</button>
+      </div>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table>
+          <thead>
+            <tr><th>Title</th><th>Date</th><th>Teams</th><th>Participants</th><th>Published</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="eventsTableBody">
+            <tr><td colspan="6" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="eventFormCard">
+      <h3 id="eventFormTitle">New Event</h3>
+      <form id="eventForm">
+        <input type="hidden" id="event_id">
+        <label for="title">Title</label>
+        <input type="text" id="title" required>
+
+        <label for="description">Description</label>
+        <textarea id="description"></textarea>
+
+        <div class="field-row">
+          <div>
+            <label for="event_date">Event Date</label>
+            <input type="date" id="event_date">
+          </div>
+          <div>
+            <label for="event_time">Event Time</label>
+            <input type="time" id="event_time">
+          </div>
+        </div>
+
+        <label for="venue">Venue</label>
+        <input type="text" id="venue">
+
+        <div class="field-row">
+          <div>
+            <label for="min_team_size">Min Team Size</label>
+            <input type="number" id="min_team_size" min="1" value="1">
+          </div>
+          <div>
+            <label for="max_team_size">Max Team Size</label>
+            <input type="number" id="max_team_size" min="1" value="1">
+          </div>
+        </div>
+
+        <label for="registration_deadline">Registration Deadline (optional)</label>
+        <input type="date" id="registration_deadline">
+
+        <label><input type="checkbox" id="is_published" checked style="width:auto;display:inline;margin-right:6px;"> Published (visible to students)</label>
+
+        <div class="btn-row">
+          <button type="submit" class="btn">Save Event</button>
+          <button type="button" class="btn secondary" id="cancelEventBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- REGISTRATIONS TAB -->
+  <div id="tab-registrations" class="tab-content hidden">
+    <div class="card">
+      <div class="flex-between">
+        <h2 style="margin:0;">All Registrations</h2>
+        <select id="eventFilter" style="width:auto;">
+          <option value="">All Events</option>
+        </select>
+      </div>
+      <p class="muted">Every team that has registered, across all events. Click an event name in Manage Events to export a CSV of just that event.</p>
+      <div class="table-wrap" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr><th>Event</th><th>Team Name</th><th>Team Leader</th><th>Team Size</th><th>Members (Name / Dept / Year)</th><th>Registered On</th></tr>
+          </thead>
+          <tbody id="regsTableBody">
+            <tr><td colspan="6" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BREAKDOWN TAB -->
+  <div id="tab-breakdown" class="tab-content hidden">
+    <div class="card">
+      <h2>By Department</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Department</th><th>Participant Count</th></tr></thead>
+          <tbody id="deptTableBody"><tr><td colspan="2" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>By Year</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Year</th><th>Participant Count</th></tr></thead>
+          <tbody id="yearTableBody"><tr><td colspan="2" class="muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="tab-content hidden">
+    <div class="card narrow">
+      <h2>Add Another Admin</h2>
+      <p class="muted">Give another staff member access to this dashboard.</p>
+      <div id="addAdminAlert" class="alert hidden"></div>
+      <form id="addAdminForm">
+        <label for="new_admin_name">Name</label>
+        <input type="text" id="new_admin_name" required>
+        <label for="new_admin_email">Email</label>
+        <input type="email" id="new_admin_email" required>
+        <label for="new_admin_password">Temporary Password</label>
+        <input type="password" id="new_admin_password" required minlength="6">
+        <div class="btn-row">
+          <button type="submit" class="btn">Add Admin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+let allEvents = [];
+
+// ---------- Auth check ----------
+async function checkAdmin() {
+  try {
+    const data = await apiCall('/api/admin/me');
+    document.getElementById('adminNameDisplay').textContent = `Hi, ${data.admin.name}`;
+  } catch (err) {
+    window.location.href = '/admin-login.html';
+  }
+}
+
+document.getElementById('logoutLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await apiCall('/api/admin/logout', 'POST');
+  window.location.href = '/admin-login.html';
+});
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+  });
+});
+
+// ---------- Stats ----------
+async function loadStats() {
+  try {
+    const data = await apiCall('/api/admin/stats');
+    const tiles = document.querySelectorAll('#statGrid .stat-tile .num');
+    tiles[0].textContent = data.totalEvents;
+    tiles[1].textContent = data.totalRegistrations;
+    tiles[2].textContent = data.totalParticipants;
+    tiles[3].textContent = data.totalStudents;
+
+    document.getElementById('deptTableBody').innerHTML = data.byDepartment.length
+      ? data.byDepartment.map(d => `<tr><td>${escapeHtml(d.department)}</td><td>${d.count}</td></tr>`).join('')
+      : '<tr><td colspan="2" class="muted">No data yet.</td></tr>';
+
+    document.getElementById('yearTableBody').innerHTML = data.byYear.length
+      ? data.byYear.map(y => `<tr><td>${escapeHtml(y.year)}</td><td>${y.count}</td></tr>`).join('')
+      : '<tr><td colspan="2" class="muted">No data yet.</td></tr>';
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+
+// ---------- Events ----------
+async function loadEvents() {
+  try {
+    const data = await apiCall('/api/admin/events');
+    allEvents = data.events;
+    const tbody = document.getElementById('eventsTableBody');
+    if (!allEvents.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No events yet. Click "New Event" to add one.</td></tr>';
+    } else {
+      tbody.innerHTML = allEvents.map(ev => `
+        <tr>
+          <td>${escapeHtml(ev.title)}</td>
+          <td>${formatDate(ev.event_date)}</td>
+          <td>${ev.registration_count}</td>
+          <td>${ev.total_participants}</td>
+          <td>${ev.is_published ? 'Yes' : 'No (draft)'}</td>
+          <td>
+            <button class="btn small secondary edit-btn" data-id="${ev.id}">Edit</button>
+            <button class="btn small secondary export-btn" data-id="${ev.id}">Export CSV</button>
+            <button class="btn small danger delete-btn" data-id="${ev.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', () => openEditForm(b.dataset.id)));
+      tbody.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', () => deleteEvent(b.dataset.id)));
+      tbody.querySelectorAll('.export-btn').forEach(b => b.addEventListener('click', () => {
+        window.location.href = `/api/admin/events/${b.dataset.id}/export-csv`;
+      }));
+    }
+
+    // populate event filter dropdown
+    const filter = document.getElementById('eventFilter');
+    filter.innerHTML = '<option value="">All Events</option>' +
+      allEvents.map(ev => `<option value="${ev.id}">${escapeHtml(ev.title)}</option>`).join('');
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+
+document.getElementById('newEventBtn').addEventListener('click', () => {
+  document.getElementById('eventForm').reset();
+  document.getElementById('event_id').value = '';
+  document.getElementById('eventFormTitle').textContent = 'New Event';
+  document.getElementById('eventFormCard').classList.remove('hidden');
+});
+
+document.getElementById('cancelEventBtn').addEventListener('click', () => {
+  document.getElementById('eventFormCard').classList.add('hidden');
+});
+
+function openEditForm(id) {
+  const ev = allEvents.find(e => String(e.id) === String(id));
+  if (!ev) return;
+  document.getElementById('eventFormTitle').textContent = 'Edit Event';
+  document.getElementById('event_id').value = ev.id;
+  document.getElementById('title').value = ev.title;
+  document.getElementById('description').value = ev.description || '';
+  document.getElementById('event_date').value = ev.event_date || '';
+  document.getElementById('event_time').value = ev.event_time || '';
+  document.getElementById('venue').value = ev.venue || '';
+  document.getElementById('min_team_size').value = ev.min_team_size;
+  document.getElementById('max_team_size').value = ev.max_team_size;
+  document.getElementById('registration_deadline').value = ev.registration_deadline || '';
+  document.getElementById('is_published').checked = !!ev.is_published;
+  document.getElementById('eventFormCard').classList.remove('hidden');
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Delete this event and all its registrations? This cannot be undone.')) return;
+  try {
+    await apiCall(`/api/admin/events/${id}`, 'DELETE');
+    await loadEvents();
+    await loadStats();
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+
+document.getElementById('eventForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('event_id').value;
+  const payload = {
+    title: document.getElementById('title').value,
+    description: document.getElementById('description').value,
+    event_date: document.getElementById('event_date').value,
+    event_time: document.getElementById('event_time').value,
+    venue: document.getElementById('venue').value,
+    min_team_size: document.getElementById('min_team_size').value,
+    max_team_size: document.getElementById('max_team_size').value,
+    registration_deadline: document.getElementById('registration_deadline').value,
+    is_published: document.getElementById('is_published').checked,
+  };
+
+  try {
+    if (id) {
+      await apiCall(`/api/admin/events/${id}`, 'PUT', payload);
+    } else {
+      await apiCall('/api/admin/events', 'POST', payload);
+    }
+    document.getElementById('eventFormCard').classList.add('hidden');
+    await loadEvents();
+    await loadStats();
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+});
+
+// ---------- Registrations ----------
+async function loadRegistrations() {
+  try {
+    const data = await apiCall('/api/admin/all-registrations');
+    renderRegistrations(data.registrations);
+
+    document.getElementById('eventFilter').addEventListener('change', (e) => {
+      const val = e.target.value;
+      const filtered = val ? data.registrations.filter(r => String(r.event_id) === val) : data.registrations;
+      renderRegistrations(filtered);
+    });
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+
+function renderRegistrations(regs) {
+  const tbody = document.getElementById('regsTableBody');
+  if (!regs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">No registrations yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = regs.map(r => `
+    <tr>
+      <td>${escapeHtml(r.event_title)}</td>
+      <td>${escapeHtml(r.team_name || '(individual)')}</td>
+      <td>${escapeHtml(r.leader_name)}<br><span class="muted" style="font-size:0.78rem;">${escapeHtml(r.leader_email)}</span></td>
+      <td>${r.team_size}</td>
+      <td>${r.members.map(m => `${escapeHtml(m.name)} (${escapeHtml(m.department || '-')}, ${escapeHtml(m.year || '-')})${m.is_leader ? ' &mdash; leader' : ''}`).join('<br>')}</td>
+      <td>${new Date(r.created_at).toLocaleDateString('en-IN')}</td>
+    </tr>
+  `).join('');
+}
+
+// ---------- Add admin ----------
+document.getElementById('addAdminForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlert('addAdminAlert');
+  try {
+    await apiCall('/api/admin/add-admin', 'POST', {
+      name: document.getElementById('new_admin_name').value,
+      email: document.getElementById('new_admin_email').value,
+      password: document.getElementById('new_admin_password').value,
+    });
+    showAlert('addAdminAlert', 'Admin added successfully.', 'success');
+    document.getElementById('addAdminForm').reset();
+  } catch (err) {
+    showAlert('addAdminAlert', err.message);
+  }
+});
+
+// ---------- Init ----------
+async function init() {
+  await checkAdmin();
+  await loadStats();
+  await loadEvents();
+  await loadRegistrations();
+}
+init();
+</script>
+</body>
+</html>

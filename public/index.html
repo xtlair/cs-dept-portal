@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Department | Sankara College of Science and Commerce</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="brand">
+    Sankara College of Science and Commerce
+    <small>Department of Computer Science</small>
+  </div>
+  <nav>
+    <a href="/index.html">Events</a>
+    <a href="/student-login.html">Student Login</a>
+    <a href="/admin-login.html">Admin Login</a>
+  </nav>
+</div>
+
+<div class="hero">
+  <h1>CS Department Events Portal</h1>
+  <p>Find out about upcoming department events and register your team in a few clicks.</p>
+</div>
+
+<div class="container">
+  <div id="alertBox" class="alert hidden"></div>
+  <h2>Upcoming &amp; Recent Events</h2>
+  <div id="eventList" class="event-grid">
+    <p class="muted">Loading events...</p>
+  </div>
+</div>
+
+<footer>
+  &copy; <span id="year"></span> Department of Computer Science, Sankara College of Science and Commerce
+</footer>
+
+<script src="/js/api.js"></script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+async function loadEvents() {
+  const list = document.getElementById('eventList');
+  try {
+    const data = await apiCall('/api/events');
+    if (!data.events.length) {
+      list.innerHTML = '<p class="muted">No events have been announced yet. Check back soon.</p>';
+      return;
+    }
+    list.innerHTML = data.events.map(ev => `
+      <div class="event-card">
+        <span class="badge">${ev.registration_count} team${ev.registration_count === 1 ? '' : 's'} registered</span>
+        <h3>${escapeHtml(ev.title)}</h3>
+        <div class="event-meta">
+          <span>📅 ${formatDate(ev.event_date)}</span>
+          ${ev.event_time ? `<span>🕒 ${escapeHtml(ev.event_time)}</span>` : ''}
+        </div>
+        <div class="event-meta">
+          <span>📍 ${escapeHtml(ev.venue || 'Venue TBA')}</span>
+        </div>
+        <p class="muted" style="margin:4px 0 0;">${escapeHtml((ev.description || '').slice(0, 110))}${ev.description && ev.description.length > 110 ? '…' : ''}</p>
+        <a class="btn small" href="/event.html?id=${ev.id}" style="margin-top:8px;">View &amp; Register</a>
+      </div>
+    `).join('');
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+loadEvents();
+</script>
+</body>
+</html>

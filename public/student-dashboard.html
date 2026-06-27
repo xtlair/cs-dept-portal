@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard | CS Department</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="brand">
+    Sankara College of Science and Commerce
+    <small>Department of Computer Science</small>
+  </div>
+  <nav>
+    <a href="/index.html">Events</a>
+    <span id="studentNameDisplay"></span>
+    <a href="#" id="logoutLink">Log Out</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div id="alertBox" class="alert hidden"></div>
+
+  <div class="card" id="profileCard">
+    <h2>My Profile</h2>
+    <p id="profileDetails" class="muted">Loading...</p>
+  </div>
+
+  <div class="card">
+    <div class="flex-between">
+      <h2 style="margin:0;">My Registrations</h2>
+      <a href="/index.html" class="btn small">Browse Events</a>
+    </div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table>
+        <thead>
+          <tr><th>Event</th><th>Team Name</th><th>Date</th><th>Venue</th><th>Registered On</th></tr>
+        </thead>
+        <tbody id="regTableBody">
+          <tr><td colspan="5" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+async function init() {
+  try {
+    const meData = await apiCall('/api/student/me');
+    const s = meData.student;
+    document.getElementById('studentNameDisplay').textContent = `Hi, ${s.name}`;
+    document.getElementById('profileDetails').innerHTML = `
+      <strong>${escapeHtml(s.name)}</strong> &middot; ${escapeHtml(s.email)}<br>
+      ${escapeHtml(s.department)} &middot; ${escapeHtml(s.year)}
+      ${s.roll_number ? ' &middot; Roll No: ' + escapeHtml(s.roll_number) : ''}
+    `;
+  } catch (err) {
+    window.location.href = '/student-login.html';
+    return;
+  }
+
+  try {
+    const data = await apiCall('/api/student/my-registrations');
+    const tbody = document.getElementById('regTableBody');
+    if (!data.registrations.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">You haven\'t registered for any events yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.registrations.map(r => `
+      <tr>
+        <td><a href="/event.html?id=${r.event_id}">${escapeHtml(r.title)}</a></td>
+        <td>${escapeHtml(r.team_name || '(individual)')}</td>
+        <td>${formatDate(r.event_date)}</td>
+        <td>${escapeHtml(r.venue || '-')}</td>
+        <td>${new Date(r.created_at).toLocaleDateString('en-IN')}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    showAlert('alertBox', err.message);
+  }
+}
+
+document.getElementById('logoutLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await apiCall('/api/student/logout', 'POST');
+  window.location.href = '/index.html';
+});
+
+init();
+</script>
+</body>
+</html>

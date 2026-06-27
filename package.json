@@ -1,0 +1,15 @@
+{
+  "name": "cs-dept-portal",
+  "version": "1.0.0",
+  "description": "CS Department Portal - Sankara College of Science and Commerce",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "seed-admin": "node server/seedAdmin.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "better-sqlite3": "^11.3.0"
+  }
+}
